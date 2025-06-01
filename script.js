@@ -1,40 +1,52 @@
-// Configuration - REPLACE THESE WITH YOUR DRIVE FOLDER IDs
+// Configuration - Updated with your Drive folders
 const DRIVE_FOLDER_IDS = {
-  earrings: '1yWsTeNK2dNQHDQW8kmVmQi9HYt2KS31R',  // Replace with your earrings folder ID
-  necklaces: '18eo7br_goagjXem99wQ27EgpdlcQ9aG7' // Replace with your necklaces folder ID
+  earrings: '1yWsTeNK2dNQHDQW8kmVmQi9HYt2KS31R',
+  necklaces: '18eo7br_goagjXem99wQ27EgpdlcQ9aG7'
 };
 
 // DOM Elements
 const videoElement = document.getElementById('webcam');
 const canvasElement = document.getElementById('overlay');
 const canvasCtx = canvasElement.getContext('2d');
+const loadingIndicator = document.getElementById('loading-indicator');
 
 // App State
 let currentMode = null;
 let currentEarring = null;
 let currentNecklace = null;
 let jewelryCache = { earrings: [], necklaces: [] };
+let faceMesh = null;
+let camera = null;
 
 // Face Mesh Landmark Positions
 let leftEarPositions = [];
 let rightEarPositions = [];
 let chinPositions = [];
 
-// Initialize Face Mesh
-const faceMesh = new FaceMesh({
-  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-});
+// Utility Functions
+function showLoading(show) {
+  loadingIndicator.style.display = show ? 'block' : 'none';
+}
 
-faceMesh.setOptions({
-  maxNumFaces: 1,
-  refineLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
+function showError(message) {
+  const errorDiv = document.createElement('div');
+  errorDiv.style.position = 'fixed';
+  errorDiv.style.bottom = '20px';
+  errorDiv.style.left = '50%';
+  errorDiv.style.transform = 'translateX(-50%)';
+  errorDiv.style.backgroundColor = 'rgba(255,0,0,0.7)';
+  errorDiv.style.color = 'white';
+  errorDiv.style.padding = '10px 20px';
+  errorDiv.style.borderRadius = '5px';
+  errorDiv.style.zIndex = '1000';
+  errorDiv.textContent = message;
+  document.body.appendChild(errorDiv);
+  setTimeout(() => errorDiv.remove(), 5000);
+}
 
 // Smoothing function for landmarks
 function smooth(positions) {
-  if (positions.length === 0) return null;
+  if (!positions || positions.length === 0) return null;
   const sum = positions.reduce((acc, pos) => ({ x: acc.x + pos.x, y: acc.y + pos.y }), { x: 0, y: 0 });
   return { x: sum.x / positions.length, y: sum.y / positions.length };
 }
@@ -67,7 +79,7 @@ async function fetchDriveFolder(folderType) {
     const fileIds = new Set();
     let match;
     
-    while ((match = regex.exec(html)) {
+    while ((match = regex.exec(html))) {
       fileIds.add(match[1]);
     }
     
@@ -81,6 +93,7 @@ async function fetchDriveFolder(folderType) {
     refreshJewelryOptions(folderType);
   } catch (error) {
     console.error(`Error loading ${folderType}:`, error);
+    showError(`Failed to load ${folderType}. Please check your internet connection.`);
   } finally {
     showLoading(false);
   }
@@ -116,11 +129,6 @@ function refreshJewelryOptions(folderType) {
   });
 }
 
-// Show/hide loading indicator
-function showLoading(show) {
-  document.getElementById('loading-indicator').style.display = show ? 'block' : 'none';
-}
-
 // Select jewelry mode
 function selectMode(mode) {
   currentMode = mode;
@@ -135,6 +143,11 @@ function selectMode(mode) {
 
 // Take snapshot function
 function takeSnapshot() {
+  if (!videoElement.videoWidth) {
+    showError("Camera not ready. Please wait and try again.");
+    return;
+  }
+
   const snapshotCanvas = document.createElement('canvas');
   const ctx = snapshotCanvas.getContext('2d');
 
@@ -165,71 +178,156 @@ function takeSnapshot() {
   document.body.removeChild(link);
 }
 
-// Face Mesh results handler
-faceMesh.onResults((results) => {
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+// Initialize Face Mesh
+async function initFaceMesh() {
+  try {
+    faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
 
-  if (results.multiFaceLandmarks.length > 0) {
-    const landmarks = results.multiFaceLandmarks[0];
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
 
-    // Get ear and chin positions
-    const left = {
-      x: landmarks[132].x * canvasElement.width,
-      y: landmarks[132].y * canvasElement.height - 20,
-    };
+    faceMesh.onResults((results) => {
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-    const right = {
-      x: landmarks[361].x * canvasElement.width,
-      y: landmarks[361].y * canvasElement.height - 20,
-    };
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0];
 
-    const chin = {
-      x: landmarks[152].x * canvasElement.width,
-      y: landmarks[152].y * canvasElement.height + 10,
-    };
+        // Get ear and chin positions
+        const left = {
+          x: landmarks[132].x * canvasElement.width,
+          y: landmarks[132].y * canvasElement.height - 20,
+        };
 
-    // Add to smoothing buffers
-    leftEarPositions.push(left);
-    rightEarPositions.push(right);
-    chinPositions.push(chin);
-    if (leftEarPositions.length > 5) leftEarPositions.shift();
-    if (rightEarPositions.length > 5) rightEarPositions.shift();
-    if (chinPositions.length > 5) chinPositions.shift();
+        const right = {
+          x: landmarks[361].x * canvasElement.width,
+          y: landmarks[361].y * canvasElement.height - 20,
+        };
 
-    // Get smoothed positions
-    const leftSmooth = smooth(leftEarPositions);
-    const rightSmooth = smooth(rightEarPositions);
-    const chinSmooth = smooth(chinPositions);
+        const chin = {
+          x: landmarks[152].x * canvasElement.width,
+          y: landmarks[152].y * canvasElement.height + 10,
+        };
 
-    // Draw selected jewelry
-    if (currentMode === 'earrings' && currentEarring) {
-      if (leftSmooth) canvasCtx.drawImage(currentEarring, leftSmooth.x - 60, leftSmooth.y, 100, 100);
-      if (rightSmooth) canvasCtx.drawImage(currentEarring, rightSmooth.x - 20, rightSmooth.y, 100, 100);
-    } else if (currentMode === 'necklaces' && currentNecklace && chinSmooth) {
-      canvasCtx.drawImage(currentNecklace, chinSmooth.x - 100, chinSmooth.y, 200, 100);
+        // Add to smoothing buffers
+        leftEarPositions.push(left);
+        rightEarPositions.push(right);
+        chinPositions.push(chin);
+        if (leftEarPositions.length > 5) leftEarPositions.shift();
+        if (rightEarPositions.length > 5) rightEarPositions.shift();
+        if (chinPositions.length > 5) chinPositions.shift();
+
+        // Get smoothed positions
+        const leftSmooth = smooth(leftEarPositions);
+        const rightSmooth = smooth(rightEarPositions);
+        const chinSmooth = smooth(chinPositions);
+
+        // Draw selected jewelry
+        if (currentMode === 'earrings' && currentEarring) {
+          if (leftSmooth) canvasCtx.drawImage(currentEarring, leftSmooth.x - 60, leftSmooth.y, 100, 100);
+          if (rightSmooth) canvasCtx.drawImage(currentEarring, rightSmooth.x - 20, rightSmooth.y, 100, 100);
+        } else if (currentMode === 'necklaces' && currentNecklace && chinSmooth) {
+          canvasCtx.drawImage(currentNecklace, chinSmooth.x - 100, chinSmooth.y, 200, 100);
+        }
+      }
+    });
+  } catch (error) {
+    console.error("FaceMesh initialization failed:", error);
+    showError("Failed to initialize AR features. Please try refreshing the page.");
+  }
+}
+
+// Initialize Camera
+async function initCamera() {
+  try {
+    // First check if browser supports mediaDevices
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera API not supported in this browser");
     }
+    
+    // Try to get camera stream
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+    
+    // Connect stream to video element
+    videoElement.srcObject = stream;
+    
+    // Wait for video to be ready
+    await new Promise((resolve) => {
+      videoElement.onloadedmetadata = resolve;
+    });
+    
+    // Set canvas size
+    canvasElement.width = videoElement.videoWidth;
+    canvasElement.height = videoElement.videoHeight;
+    
+    // Start face mesh processing
+    camera = new Camera(videoElement, {
+      onFrame: async () => {
+        if (faceMesh) {
+          await faceMesh.send({ image: videoElement });
+        }
+      },
+      width: videoElement.videoWidth,
+      height: videoElement.videoHeight,
+    });
+    await camera.start();
+    
+    console.log("Camera started successfully");
+    return true;
+    
+  } catch (error) {
+    console.error("Camera initialization failed:", error);
+    
+    let errorMessage;
+    if (error.name === 'NotAllowedError') {
+      errorMessage = "Camera access was denied. Please allow camera permissions to use this feature.";
+    } else if (error.name === 'NotFoundError') {
+      errorMessage = "No camera found on this device.";
+    } else if (error.name === 'NotReadableError') {
+      errorMessage = "Camera is already in use by another application.";
+    } else {
+      errorMessage = "Failed to access camera: " + error.message;
+    }
+    
+    showError(errorMessage);
+    return false;
   }
-});
+}
 
-// Initialize camera
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
-    await faceMesh.send({ image: videoElement });
-  },
-  width: 1280,
-  height: 720,
-});
-camera.start();
-
-// Set canvas size when video loads
-videoElement.addEventListener('loadedmetadata', () => {
-  canvasElement.width = videoElement.videoWidth;
-  canvasElement.height = videoElement.videoHeight;
-});
-
-// Auto-refresh jewelry options every 5 minutes
-setInterval(() => {
-  if (currentMode) {
-    fetchDriveFolder(currentMode);
+// Initialize the application
+async function initApp() {
+  showLoading(true);
+  try {
+    await initFaceMesh();
+    const cameraSuccess = await initCamera();
+    
+    if (cameraSuccess) {
+      // Auto-refresh jewelry options every 5 minutes
+      setInterval(() => {
+        if (currentMode) {
+          fetchDriveFolder(currentMode);
+        }
+      }, 300000);
+    }
+  } catch (error) {
+    console.error("App initialization failed:", error);
+    showError("Failed to initialize application. Please try refreshing the page.");
+  } finally {
+    showLoading(false);
   }
-}, 300000);
+}
+
+// Start the app when page loads
+document.addEventListener('DOMContentLoaded', initApp);
