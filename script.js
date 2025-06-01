@@ -3,6 +3,38 @@ const DRIVE_FOLDER_IDS = {
   earrings: '1yWsTeNK2dNQHDQW8kmVmQi9HYt2KS31R',
   necklaces: '18eo7br_goagjXem99wQ27EgpdlcQ9aG7'
 };
+const GOOGLE_API_KEY = 'YOUR_API_KEY'; // Replace with your actual key
+
+// [Previous code remains the same until fetchDriveFolder]
+
+async function fetchDriveFolder(folderType) {
+  showLoading(true);
+  
+  try {
+    const folderId = DRIVE_FOLDER_IDS[folderType];
+    const apiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${GOOGLE_API_KEY}&fields=files(id,name,webContentLink)`;
+    
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    
+    const { files } = await response.json();
+    
+    jewelryCache[folderType] = files.map(file => ({
+      id: file.id,
+      url: `https://drive.google.com/uc?export=view&id=${file.id}`,
+      name: file.name
+    }));
+    
+    refreshJewelryOptions(folderType);
+  } catch (error) {
+    console.error(`Error loading ${folderType}:`, error);
+    showError(`Failed to load ${folderType}. Try refreshing.`);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// [Rest of your existing code]
 
 // DOM Elements
 const videoElement = document.getElementById('webcam');
