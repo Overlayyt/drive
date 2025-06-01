@@ -1,41 +1,23 @@
 // Configuration - Updated with your Drive folders
-const DRIVE_FOLDER_IDS = {
-  earrings: '1yWsTeNK2dNQHDQW8kmVmQi9HYt2KS31R',
-  necklaces: '18eo7br_goagjXem99wQ27EgpdlcQ9aG7'
+// Manually create direct links in your configuration
+const JEWELRY_IMAGES = {
+  earrings: [
+    { id: 'FILE_ID_1', url: '1yWsTeNK2dNQHDQW8kmVmQi9HYt2KS31R' },
+    { id: 'FILE_ID_2', url: '18eo7br_goagjXem99wQ27EgpdlcQ9aG7' }
+  ],
+  necklaces: [
+    // Add necklace images similarly
+  ]
 };
-const GOOGLE_API_KEY = 'YOUR_API_KEY'; // Replace with your actual key
-
-// [Previous code remains the same until fetchDriveFolder]
 
 async function fetchDriveFolder(folderType) {
   showLoading(true);
-  
   try {
-    const folderId = DRIVE_FOLDER_IDS[folderType];
-    
-    // Use Google Drive API v3 (public folder access)
-    const response = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=YOUR_API_KEY&fields=files(id,name,webContentLink)`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`Google Drive API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // Update cache with direct image URLs
-    jewelryCache[folderType] = data.files.map(file => ({
-      id: file.id,
-      url: `https://drive.google.com/uc?export=view&id=${file.id}`,
-      name: file.name
-    }));
-    
-    // Refresh UI options
+    jewelryCache[folderType] = JEWELRY_IMAGES[folderType];
     refreshJewelryOptions(folderType);
   } catch (error) {
     console.error(`Error loading ${folderType}:`, error);
-    showError(`Failed to load ${folderType}. Please try again later.`);
+    showError(`Failed to load ${folderType}.`);
   } finally {
     showLoading(false);
   }
