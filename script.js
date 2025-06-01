@@ -12,23 +12,30 @@ async function fetchDriveFolder(folderType) {
   
   try {
     const folderId = DRIVE_FOLDER_IDS[folderType];
-    const apiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${GOOGLE_API_KEY}&fields=files(id,name,webContentLink)`;
     
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    // Use Google Drive API v3 (public folder access)
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=YOUR_API_KEY&fields=files(id,name,webContentLink)`
+    );
     
-    const { files } = await response.json();
+    if (!response.ok) {
+      throw new Error(`Google Drive API error: ${response.status}`);
+    }
     
-    jewelryCache[folderType] = files.map(file => ({
+    const data = await response.json();
+    
+    // Update cache with direct image URLs
+    jewelryCache[folderType] = data.files.map(file => ({
       id: file.id,
       url: `https://drive.google.com/uc?export=view&id=${file.id}`,
       name: file.name
     }));
     
+    // Refresh UI options
     refreshJewelryOptions(folderType);
   } catch (error) {
     console.error(`Error loading ${folderType}:`, error);
-    showError(`Failed to load ${folderType}. Try refreshing.`);
+    showError(`Failed to load ${folderType}. Please try again later.`);
   } finally {
     showLoading(false);
   }
