@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Overlay Jewels Try-On</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel&family=Poppins&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <video id="webcam" autoplay muted playsinline></video>
+  <canvas id="overlay"></canvas>
+
+  <!-- Branding with Camera Icon -->
+  <div id="branding">
+    <img src="cameraicon.png" alt="Camera Icon" class="camera-icon" style="width: 52px; height: 52px;" />
+  </div>
+
+  <!-- Mode Selection Buttons -->
+  <div id="jewelry-mode">
+    <button onclick="selectMode('earrings')">Earrings</button>
+    <button onclick="selectMode('necklaces')">Necklaces</button>
+  </div>
+
+  <!-- Earring Options -->
+  <div id="earrings-options" class="options-group" style="display: none;">
+    <!-- Dynamically populated from Google Drive -->
+  </div>
+
+  <!-- Necklace Options -->
+  <div id="necklaces-options" class="options-group" style="display: none;">
+    <!-- Dynamically populated from Google Drive -->
+  </div>
+
+  <!-- Loading Indicator -->
+  <div id="loading-indicator" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:100; background:rgba(0,0,0,0.7); padding:20px; border-radius:10px; color:white;">
+    Loading jewelry options...
+  </div>
+
+  <!-- Save Snapshot Button -->
+  <button id="snapshot-btn" onclick="takeSnapshot()" style="background: none; border: none; padding: 0; cursor: pointer;">
+    <img src="camera-icon.png" alt="Camera Icon" style="width: 32px; height: 32px;" />
+  </button>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

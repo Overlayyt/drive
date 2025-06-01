@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel&family=Poppins&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0b0b0b;
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+}
+
+video, canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: 1;
+}
+
+/* Branding */
+#branding {
+  position: fixed;
+  top: 20px;
+  width: 100%;
+  text-align: center;
+  z-index: 5;
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
+  color: #ffd700;
+  letter-spacing: 1px;
+}
+
+.camera-icon {
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* Jewelry Mode Buttons */
+#jewelry-mode {
+  position: fixed;
+  right: 20px;
+  top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 5;
+}
+
+#jewelry-mode button {
+  background-color: #ffd700;
+  color: #000;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#jewelry-mode button:hover {
+  background-color: #e6c200;
+}
+
+/* Jewelry Option Groups */
+.options-group {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 20px;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  max-width: 90%;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.options-group::-webkit-scrollbar {
+  display: none;
+}
+
+.options-group button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.options-group button img {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: border 0.2s ease;
+}
+
+.options-group button:hover img {
+  border: 2px solid #ffd700;
+  transform: scale(1.05);
+}
+
+/* Snapshot Button */
+#snapshot-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #ffd700;
+  color: #000;
+  border: none;
+  padding: 10px 15px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color 0.3s ease;
+}
+
+#snapshot-btn:hover {
+  background-color: #e6c200;
+}
